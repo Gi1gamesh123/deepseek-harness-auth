@@ -40,6 +40,19 @@
     # once the web UI owns the choice per session.
     mode: !!js process.env.DSH_TOOLS_MODE
 
+# Public Web sessions use the narrowest file-effect policy by default. These
+# rows replace dsh-base's deployment-wide permission defaults; a public
+# listener must not become full-access because an environment variable was
+# copied from a private development profile.
+- id: sandbox-policy
+  config:
+    mode: read-only
+    workspaceRoot: !!js process.cwd()
+
+- id: approval
+  config:
+    policy: ask
+
 # ── web-only host rows, the transport layer, and the browser roster ─────────
 
 # `dsh.client` rows are the browser roster the modules node half scans into
@@ -118,6 +131,10 @@
       config:
         host: !!js ctx.webStartup.host ?? '127.0.0.1'
         port: !!js ctx.webStartup.port ?? 3080
+        # Every Web composition has an authentication guard. This remains
+        # required even when a deployment later puts a proxy in front of a
+        # loopback bind; bind address is not an authentication decision.
+        requireGuard: true
 
     # Remote bind is protected by the host-level login plugin. The webserver
     # also fails closed if a custom composition enables remote bind without a
@@ -125,7 +142,11 @@
     - id: web-auth
       name: '@deepseek-ai/dsh-host-web-auth'
       config:
-        enabled: !!js ctx.webServer.host === '0.0.0.0'
+        # Authentication is enabled for loopback and all-interface binds. A
+        # reverse proxy may expose a loopback listener publicly, so deriving
+        # authentication from the bind address would create an unauthenticated
+        # public deployment.
+        enabled: true
         username: admin
         passwordEnv: DSH_WEB_PASSWORD
         sessionTtlSeconds: 43200

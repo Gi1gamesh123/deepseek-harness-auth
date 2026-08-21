@@ -243,10 +243,15 @@ function authGuard(runtime: Runtime): WebGuard {
 }
 
 /** Install the login routes and the global WebServer guard. */
-export function apply(ctx: Context, config: Config): void {
+export async function apply(ctx: Context, config: Config): Promise<void> {
   if (!config.enabled) return
+  const passwordRef = credentialRef(config.passwordEnv)
+  const passwordInfo = await ctx.credentials.describe(passwordRef)
+  if (!passwordInfo.configured) {
+    throw new Error(`web-auth: password credential ${config.passwordEnv} is not configured`)
+  }
   const runtime: Runtime = {
-    passwordRef: credentialRef(config.passwordEnv),
+    passwordRef,
     sessions: new Map(),
     loginFailures: new Map(),
     config,

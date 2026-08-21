@@ -179,7 +179,8 @@ describe('connection node half', () => {
     // ordinary reads (carrier-level 404 from the empty proxy proves the fence
     // passed), but each privileged method stays loopback-only and 403s.
     for (const method of [
-      'host.pickDirectory', 'host.openPath',
+      'session.export', 'events.mux', 'events.host',
+      'host.describe', 'host.pickDirectory', 'host.listDirectory', 'host.createDirectory', 'host.openPath',
       'settings.describe', 'settings.openDocument', 'settings.update', 'settings.replace', 'settings.mutate',
       'credentials.describe', 'credentials.set', 'credentials.unset',
       'llm.discoverModels',
@@ -213,6 +214,20 @@ describe('connection node half', () => {
       allowed.response,
     )
     expect(allowed.state.status).not.toBe(403)
+    await dispose()
+  })
+
+  it('applies the authenticated-authority gate to unlisted Remote endpoints too', async () => {
+    const { routes, dispose } = await mounted({
+      trustedHosts: ['harness.example', 'other.example'],
+      authenticatedHosts: ['harness.example'],
+    })
+    const denied = fakeResponse()
+    await routes[0]!.handler(
+      fakeRequest({ host: 'other.example' }, `${API_PATH}/dynamic.run`),
+      denied.response,
+    )
+    expect(denied.state.status).toBe(403)
     await dispose()
   })
 

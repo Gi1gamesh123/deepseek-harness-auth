@@ -10,9 +10,11 @@ Web profile 可以绑定所有接口，但其浏览器信任检查不是用户�
 
 ## 决策
 
-全接口 Web 组合把 host web-auth 包挂载为全局 WebServer guard。它通过凭据服务解析配置的密码，只保存经过哈希的进程内会话 token，以稳定的双提交 CSRF cookie 和按地址统计的尝试次数限制保护登录，并在分发前守卫 HTTP 路由与 WebSocket upgrade。回环组合不挂载该认证配置项。
+Web 组合对所有绑定地址都挂载 host web-auth 包作为全局 WebServer guard。它通过凭据服务解析配置的密码；引用缺失时启动失败；只保存经过哈希的进程内会话 token，以稳定的双提交 CSRF cookie 和按地址统计的尝试次数限制保护登录，并在分发前守卫 HTTP 路由与 WebSocket upgrade。绑定地址不决定是否认证，因此反向代理不能把未认证的回环监听器公开出去。
 
-客户端连接把服务权威信任与已认证权限分开。trustedHosts 继续针对 Host、Origin、Fetch-Metadata 与 WebSocket 请求防御跨站访问和 DNS rebinding。authenticatedHosts 默认为空，只允许请求已经通过更早认证层的权威调用特权方法；每个条目还必须存在于 trustedHosts。全接口 Web 运行时在全局登录 guard 之后提供其已认证的服务权威，回环访问继续通过既有回环规则获得权限。
+Web bundle 将 base 的权限行替换为只读文件效果与操作审批。需要更宽权限的部署必须选择独立的私有 profile，或显式添加后续 patch。
+
+客户端连接把服务权威信任与已认证权限分开。trustedHosts 继续针对 Host、Origin、Fetch-Metadata 与 WebSocket 请求防御跨站访问和 DNS rebinding。authenticatedHosts 默认为空；它只为已经通过更早认证层的 authority 放行文件系统读写、会话导出、事件流 upgrade 和固定特权方法。它非空时还会覆盖完整的 `/api` transport，包括未来插件定义的 Remote endpoint，避免宿主 runner 意外成为匿名执行面。每个条目还必须存在于 trustedHosts。全接口 Web 运行时在全局登录 guard 之后提供其已认证的服务权威，回环访问继续通过既有回环规则获得权限。
 
 浏览器可见的 UUID 创建使用共享 random-uuid 包；其 RFC 4122 version 4 实现依赖 crypto.getRandomValues()，不使用仅限安全上下文的 crypto.randomUUID()。登录路由会在重复 GET 请求中复用已有 CSRF cookie。外部客户端 bundle 加载失败时，模块 loader 会探测 /auth/session；明确返回未认证时，页面带着当前路径跳转登录，其余失败仍保留插件诊断。
 

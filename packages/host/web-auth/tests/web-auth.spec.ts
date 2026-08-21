@@ -79,12 +79,50 @@ function cookiePair(value: string | null, name: string): string {
 }
 
 describe('web-auth real composition', () => {
+  it('fails closed when the configured password is absent', { timeout: 60_000 }, async () => {
+    root = await mkdtemp(join(tmpdir(), 'dsh-web-auth-missing-'))
+    const configPath = join(root, 'cordis.yml')
+    await writeFile(configPath, [
+      "- name: 'missing-credentials'",
+      "- name: '@deepseek-ai/dsh-host-webserver'",
+      '  config:',
+      "    host: '127.0.0.1'",
+      '    port: 0',
+      "- name: '@deepseek-ai/dsh-host-web-auth'",
+      '  config:',
+      '    passwordEnv: DSH_MISSING_WEB_PASSWORD',
+      '',
+    ].join('\n'))
+    context = new Context()
+    context.baseUrl = pathToFileURL(root).href + '/'
+    await context.plugin(Loader)
+    context.loader.builtins.include = Include
+    const modules = new Map<string, unknown>([
+      ['missing-credentials', TestCredentials],
+      ['@deepseek-ai/dsh-host-webserver', WebServer],
+      ['@deepseek-ai/dsh-host-web-auth', { name: 'web-auth', inject: ['webServer', 'credentials'], Config: WebAuth.Config, apply: WebAuth.apply }],
+    ])
+    context.loader.internal = {
+      version: 'v2',
+      async import(specifier: string) {
+        if (!modules.has(specifier)) throw new Error(`unexpected Loader import: ${specifier}`)
+        return modules.get(specifier)
+      },
+    } as unknown as NonNullable<typeof context.loader.internal>
+    await context.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
+    await expect(context.loader.await()).rejects.toThrow('password credential DSH_MISSING_WEB_PASSWORD is not configured')
+  })
+
   it('protects routes, performs CSRF login, and invalidates logout sessions', { timeout: 60_000 }, async () => {
     const loaded = await loadComposition()
     loaded.webServer.register({ kind: 'prefix', path: '/api', handler: (_req, res) => { res.writeHead(200); res.end('protected') } })
     const base = `http://127.0.0.1:${String(loaded.webServer.port)}`
 
     expect((await fetch(`${base}/api/test`)).status).toBe(401)
+    expect((await fetch(`${base}/api/events.mux`)).status).toBe(401)
+    expect((await fetch(`${base}/api/session.export?sessionId=missing`)).status).toBe(401)
+    expect((await fetch(`${base}/plugins/example/client.js`, { redirect: 'manual' })).status).toBe(302)
+    expect((await fetch(`${base}/api%2Fsession.list`, { redirect: 'manual' })).status).toBe(302)
     const upgrade = connect(loaded.webServer.port, '127.0.0.1')
     await once(upgrade, 'connect')
     const upgradeResponse = once(upgrade, 'data')

@@ -61,7 +61,7 @@ dsh web --dump-config
 dsh web --help
 ```
 
-生产 Web 运行器需要已构建的包和前端产物（`pnpm run build`）。默认服务地址是 `http://127.0.0.1:3080`。要直接通过 IP 访问，可使用 `dsh web --host 0.0.0.0 --port 3080`；该模式会启用 `dsh-host-web-auth`，并从 `DSH_WEB_PASSWORD` 凭据引用读取登录密码。内置部署使用明文 HTTP，公网暴露应放在可信网络或 HTTPS 反向代理之后。`--trusted-host` 可添加 `/api` 浏览器信任围栏接受的具名 authority。
+生产 Web 运行器需要已构建的包和前端产物（`pnpm run build`）。默认服务地址是 `http://127.0.0.1:3080`。所有绑定地址都要求启用 `dsh-host-web-auth`；启动前必须设置 `DSH_WEB_PASSWORD`。要直接通过 IP 访问，可使用 `dsh web --host 0.0.0.0 --port 3080`。内置部署使用明文 HTTP，公网暴露应放在可信网络或 HTTPS 反向代理之后。`--trusted-host` 可添加 `/api` 浏览器信任围栏接受的具名 authority，但不会授予身份或绕过登录。
 
 进程关闭时，插件树最多有 5 秒完成 dispose。首次收到 `SIGINT` 或 `SIGTERM` 时会开始优雅排空：`SIGTERM` 是监督进程发出的常规停止请求，在所有运行模式下都以 0 退出；`SIGINT` 则报告 130。第二次收到信号时会立即强制退出。如果一次性运行在正常结束时已经卡在 dispose 阶段，第一次按下 `Ctrl+C` 就会直接升级为强制退出，而不会被忽略。
 

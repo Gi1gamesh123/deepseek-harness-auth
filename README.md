@@ -8,7 +8,7 @@ This is a source-only development repository. There is no prebuilt package for t
 
 ## What this repository adds
 
-- Binding the Web service to `0.0.0.0` enables the host authentication plugin.
+- The Web profile enables the host authentication plugin for every bind address; binding to `0.0.0.0` does not bypass it.
 - The login guard covers the Web UI, API routes, SPA fallback, and WebSocket upgrades.
 - The browser client uses a Linux-safe UUID fallback and recovers to the login page when a restart invalidates its session.
 - Login uses a CSRF double-submit cookie, in-memory sessions, and failed-login throttling.
@@ -36,11 +36,11 @@ pnpm run build
 pnpm dsh web --host 0.0.0.0 --port 3080
 ```
 
-Open `http://<server-ip>:3080/` and sign in with username `admin` and the value of `DSH_WEB_PASSWORD`. Running `pnpm dsh web` without `--host 0.0.0.0` keeps the service on loopback and does not enable the public-bind authentication row.
+Open `http://<server-ip>:3080/` and sign in with username `admin` and the value of `DSH_WEB_PASSWORD`. The Web profile requires this login on both loopback and all-interface binds; a reverse proxy or local proxy cannot turn a loopback listener into an unauthenticated endpoint.
 
 ## Public deployment requirements
 
-The bundled listener is plain HTTP. Put it behind an HTTPS reverse proxy before exposing it to the Internet, restrict the firewall to the proxy, and provide `DSH_WEB_PASSWORD` through the service manager's environment file rather than a checked-in file. The default cookie configuration supports direct HTTP; an HTTPS deployment should set `secureCookie: true` in its Web auth configuration.
+The bundled listener is plain HTTP and does not require HTTPS for the authentication guard to operate. If it is exposed directly, provide `DSH_WEB_PASSWORD` through the service manager's environment file rather than a checked-in file. The default cookie configuration supports direct HTTP; an HTTPS deployment may set `secureCookie: true` in its Web auth configuration.
 
 Authentication sessions live only in the service process and disappear on restart. The browser returns to `/auth/login` when it detects that its session is gone. A restart therefore requires users to sign in again.
 
@@ -53,7 +53,7 @@ pnpm run doc-sync
 pnpm run lint
 ```
 
-For package-specific contracts, see [`packages/host/web-auth/README.md`](packages/host/web-auth/README.md) and [`packages/bundle/web-app/README.md`](packages/bundle/web-app/README.md). For the composition and extension model, see [`docs/architecture.md`](docs/architecture.md).
+For the repeatable security patch and public-mode update procedure, see [`docs/patch.md`](docs/patch.md). For package-specific contracts, see [`packages/host/web-auth/README.md`](packages/host/web-auth/README.md) and [`packages/bundle/web-app/README.md`](packages/bundle/web-app/README.md). For the composition and extension model, see [`docs/architecture.md`](docs/architecture.md).
 
 ## License
 

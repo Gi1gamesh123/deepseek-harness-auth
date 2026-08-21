@@ -95,6 +95,11 @@ export const Config: z<ConnectionConfig> = z.object({
  * keys, or key state — and a LAN client's model picker legitimately needs it.
  */
 const PRIVILEGED_METHODS = new Set([
+  // Session exports and live event streams carry complete conversation/tool
+  // content, including data that may have originated in credentials or files.
+  'session.export',
+  'events.mux',
+  'events.host',
   // A preset composition names the plugins a session runs, so reading one is
   // reconnaissance; copy and remove rearrange what the deployment offers, and
   // openDocument drives the host desktop — all more than the roster beside
@@ -113,7 +118,13 @@ const PRIVILEGED_METHODS = new Set([
   'agentPreset.copy',
   'agentPreset.openDocument',
   'agentPreset.remove',
+  // Directory browsing and creation expose host filesystem paths and mutate
+  // the host filesystem; keep both behind the same authenticated-authority
+  // gate as native path operations.
+  'host.describe',
   'host.pickDirectory',
+  'host.listDirectory',
+  'host.createDirectory',
   'host.openPath',
   'settings.describe',
   'settings.openDocument',
@@ -130,8 +141,8 @@ const PRIVILEGED_METHODS = new Set([
  * Mounts the API gateway under the browser transport prefix. Every request on
  * the prefix passes the browser-trust fence first (DNS-rebinding and
  * cross-site defense — [api-request-trust](./api-request-trust.ts));
- * privileged methods additionally accept only loopback or an explicitly
- * authenticated authority.
+ * privileged methods and event-stream upgrades additionally accept only
+ * loopback or an explicitly authenticated authority.
  * @param ctx - Host plugin context.
  * @param config - resolved plugin config (schema defaults applied).
  */
@@ -182,6 +193,16 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
         res.end('forbidden')
         return
       }
+      // Generated Remote endpoints are open-ended and can include a plugin's
+      // host-side code runner. Once a deployment declares authenticated public
+      // authorities, apply that gate to the whole network API, not only the
+      // fixed method list above; otherwise a newly added Remote could become
+      // an unreviewed unauthenticated execution surface.
+      if (authenticatedHosts.length > 0 && !isTrustedApiRequest(req, authenticatedHosts)) {
+        res.writeHead(403)
+        res.end('forbidden')
+        return
+      }
       await bridge(req, res, fetchHandler, maxRequestBodyBytes)
     },
   }
@@ -196,7 +217,7 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
       apiCtx.effect(() => apiCtx.webServer.registerUpgrade({
         path,
         handler: (req, socket, head) => {
-          if (!isTrustedApiRequest(req, trustedHosts)) {
+          if (!isTrustedApiRequest(req, authenticatedHosts)) {
             rejectWebSocketUpgrade(socket)
             return
           }

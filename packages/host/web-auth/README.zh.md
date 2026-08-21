@@ -6,6 +6,8 @@
 
 会话使用不透明的随机 token，服务端只保存其 SHA-256 摘要，经过 `sessionTtlSeconds` 后过期，进程重启时全部失效。登录使用 CSRF 双提交 cookie，为 HTML 设置安全响应头，并将每个远端地址在 `loginAttemptWindowSeconds` 内的失败次数限制为 `loginAttemptLimit`。注销只接受携带 `X-DSH-CSRF` token 的 POST 请求。HTTPS 在前置代理终止时应启用 `secureCookie`；默认关闭，以便在可信局域网直接使用 HTTP IP 访问。
 
+登录页复用 Web 应用的字体、明暗模式、焦点状态和 DeepSeek Harness 品牌样式，不加载外部资源；认证应用启动前会跟随浏览器的浅色或深色偏好。
+
 ## 配置
 
 ```yaml

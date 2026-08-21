@@ -6,6 +6,8 @@ Host-level login authentication for `dsh-host-webserver`. The plugin registers `
 
 Sessions are opaque random tokens stored only in memory and represented by SHA-256 digests. They expire after `sessionTtlSeconds` and all sessions disappear on process restart. Login uses a CSRF double-submit cookie, applies security headers to its HTML, and limits each remote address to `loginAttemptLimit` failed attempts per `loginAttemptWindowSeconds`. Logout accepts only POST requests carrying the CSRF token in `X-DSH-CSRF`. `secureCookie` should be enabled when HTTPS terminates in front of the process; it is disabled by default so direct HTTP access on a trusted LAN works.
 
+The login page uses the Web application's typography, color adaptation, focus states, and DeepSeek Harness brand treatment without loading external assets. It follows the browser's light or dark preference before the authenticated app starts.
+
 ## Configuration
 
 ```yaml

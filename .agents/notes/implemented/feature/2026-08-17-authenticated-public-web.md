@@ -14,13 +14,15 @@ The Web composition mounts the host web-auth package as a global WebServer guard
 
 The Web bundle replaces the base permission rows with read-only file effects and approval prompts. Deployments that need broader access must choose a separate private profile or explicit later patch.
 
+The unauthenticated login page uses the Web application's typography, light/dark color adaptation, focus states, and DeepSeek Harness brand treatment. Its CSS is inline and its CSP allows only that inline style; it loads no scripts, fonts, images, or other external assets before authentication.
+
 The client connection separates serving-authority trust from authenticated privilege. trustedHosts continues to defend Host, Origin, Fetch-Metadata, and WebSocket requests against cross-site and DNS-rebinding access. authenticatedHosts defaults to empty; it admits filesystem reads/writes, session exports, event-stream upgrades, and fixed privileged methods only for authorities whose requests already passed an earlier authentication layer. When non-empty it also gates the complete `/api` transport, including future plugin-defined Remote endpoints, so a host runner cannot become an accidental anonymous execution surface. Each entry must also exist in trustedHosts. The all-interfaces Web runtime supplies its authenticated serving authorities after the global login guard, while loopback remains privileged through its existing loopback rule.
 
 Browser-visible UUID creation uses the shared random-uuid package, whose RFC 4122 version 4 implementation relies on crypto.getRandomValues() rather than secure-context-only crypto.randomUUID(). The login route reuses an existing CSRF cookie across repeated GET requests. When an external client bundle fails to load, the module loader probes /auth/session; an explicit unauthenticated result redirects to login with the current path, while other failures retain the plugin diagnostic.
 
 ## Verification
 
-Package tests cover the WebServer guard lifecycle, real Loader composition and login, CSRF reuse, login throttling, authenticated-host subset validation, privileged-method admission, HTTP-safe UUID consumers, and expired-session redirect. The Web bundle tests cover all-interfaces versus loopback composition. The built VPS deployment verifies unauthenticated settings access returns 401, login returns an authenticated session, the agent-preset client bundle returns JavaScript and registers its module, and authenticated settings.describe returns a successful RPC response.
+Package tests cover the WebServer guard lifecycle, real Loader composition and login, CSRF reuse, login throttling, authenticated-host subset validation, privileged-method admission, HTTP-safe UUID consumers, expired-session redirect, and the login page's security headers and branded card markup. The Web bundle tests cover all-interfaces versus loopback composition. The built VPS deployment verifies unauthenticated settings access returns 401, login returns an authenticated session, the agent-preset client bundle returns JavaScript and registers its module, and authenticated settings.describe returns a successful RPC response.
 
 ## Alternatives considered
 

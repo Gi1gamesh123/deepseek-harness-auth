@@ -134,8 +134,10 @@ describe('web-auth real composition', () => {
 
     const loginPage = await fetch(`${base}/auth/login?next=%2Fapi%2Ftest`)
     expect(loginPage.status).toBe(200)
+    expect(loginPage.headers.get('content-security-policy')).toContain("style-src 'unsafe-inline'")
     expect(loginPage.headers.get('content-security-policy')).toContain("frame-ancestors 'none'")
     expect(loginPage.headers.get('x-frame-options')).toBe('DENY')
+    expect(await loginPage.text()).toContain('class="auth-card"')
     const csrfCookie = cookiePair(loginPage.headers.get('set-cookie'), 'dsh_csrf')
     const csrf = csrfCookie.slice('dsh_csrf='.length)
     const repeatedLoginPage = await fetch(`${base}/auth/login?next=%2Fapi%2Ftest`, {

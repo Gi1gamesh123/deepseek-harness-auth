@@ -14,13 +14,15 @@ Web 组合对所有绑定地址都挂载 host web-auth 包作为全局 WebServer
 
 Web bundle 将 base 的权限行替换为只读文件效果与操作审批。需要更宽权限的部署必须选择独立的私有 profile，或显式添加后续 patch。
 
+未认证登录页复用 Web 应用的字体、明暗模式配色、焦点状态和 DeepSeek Harness 品牌样式。CSS 内嵌在页面中，CSP 仅允许这段内嵌样式；认证前不加载脚本、字体、图片或其他外部资源。
+
 客户端连接把服务权威信任与已认证权限分开。trustedHosts 继续针对 Host、Origin、Fetch-Metadata 与 WebSocket 请求防御跨站访问和 DNS rebinding。authenticatedHosts 默认为空；它只为已经通过更早认证层的 authority 放行文件系统读写、会话导出、事件流 upgrade 和固定特权方法。它非空时还会覆盖完整的 `/api` transport，包括未来插件定义的 Remote endpoint，避免宿主 runner 意外成为匿名执行面。每个条目还必须存在于 trustedHosts。全接口 Web 运行时在全局登录 guard 之后提供其已认证的服务权威，回环访问继续通过既有回环规则获得权限。
 
 浏览器可见的 UUID 创建使用共享 random-uuid 包；其 RFC 4122 version 4 实现依赖 crypto.getRandomValues()，不使用仅限安全上下文的 crypto.randomUUID()。登录路由会在重复 GET 请求中复用已有 CSRF cookie。外部客户端 bundle 加载失败时，模块 loader 会探测 /auth/session；明确返回未认证时，页面带着当前路径跳转登录，其余失败仍保留插件诊断。
 
 ## 验证
 
-包测试覆盖 WebServer guard 生命周期、真实 Loader 组合与登录、CSRF 复用、登录限速、已认证权威子集校验、特权方法准入、HTTP 可用的 UUID 消费方，以及会话失效后的跳转。Web 组合包测试覆盖全接口与回环组合。VPS 构建部署验证：未登录设置访问返回 401，登录后会话为已认证状态，agent preset 客户端 bundle 返回 JavaScript 并注册模块，已认证的 settings.describe 返回成功 RPC 响应。
+包测试覆盖 WebServer guard 生命周期、真实 Loader 组合与登录、CSRF 复用、登录限速、已认证权威子集校验、特权方法准入、HTTP 可用的 UUID 消费方、会话失效后的跳转，以及登录页安全响应头和品牌卡片标记。Web 组合包测试覆盖全接口与回环组合。VPS 构建部署验证：未登录设置访问返回 401，登录后会话为已认证状态，agent preset 客户端 bundle 返回 JavaScript 并注册模块，已认证的 settings.describe 返回成功 RPC 响应。
 
 ## 备选方案
 
